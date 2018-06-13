@@ -1,5 +1,10 @@
 from flask_restful import Resource, reqparse
 from models.user import UserModel
+from werkzeug.security import safe_str_cmp
+from flask_jwt_extended import (
+	create_access_token, 
+	create_refresh_token
+	)
 
 # class global paraser filter
 _user_parser = reqparse.RequestParser()
@@ -14,6 +19,7 @@ _user_parser.add_argument('password',
 	required=True, 
 	help="This field cannot be left blank!")
 
+# user registration 
 class UserRegister(Resource):
 
 	# handle POST method for user registration .../register
@@ -28,3 +34,27 @@ class UserRegister(Resource):
 		user.save_to_db()
 
 		return {'message' : 'User created sucessfully.'}, 201
+
+# user login
+class UserLogin(Resource):
+	
+	@classmethod
+	def post(cls):
+		# get user from parser
+		data = _user_parser.parse_args()
+
+		# find user in database
+		user = UserModel.find_by_username(data['username'])
+
+		# check password
+		if user and safe_str_cmp(user.password, data['password']):
+			#TODO: should we verify if user already logged in?
+			access_token = create_access_token(identity=user.id, fresh=True)
+			refresh_token = create_refresh_token(user.id)
+
+			return {
+				'access_token' : access_token,
+				'refresh_token' : refresh_token
+			}, 200
+
+		return {'message' : 'Invalid credentials'}, 401
