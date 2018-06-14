@@ -7,7 +7,8 @@ from flask_jwt_extended import JWTManager
 from resources.user import (
 		UserRegister,
 		UserLogin,
-		UserLogout
+		UserLogout,
+		TokenRefresh
 	)
 from blacklist import BLACKLIST
 
@@ -29,17 +30,39 @@ jwt = JWTManager(app)
 def check_if_token_in_blacklist(decrypted_token):
 	return decrypted_token['jti'] in BLACKLIST # checks if id is on the balcklist
 
-@jwt.invalid_token_loader # invalid token was provided
+@jwt.invalid_token_loader # invalid token was provided (e.g. when user did log out)
 def invalid_token_callaback(error):
 	return jsonify ({
 		'description' : 'Signature verification failed.',
 		'error' : 'invalid_token'
 		}), 401
 
+@jwt.expired_token_loader
+def expired_token_callabak():
+	return jsonify({
+		'description' : 'The token has expired',
+		'error' : 'token_expired'
+		}), 401
+
+@jwt.needs_fresh_token_loader # token is correct but it is not the fresh one
+def token_not_fresh_callaback():
+	return jsonify ({
+		'description' : 'The token is not fresh.',
+		'error' : 'fres_token_required'
+		}), 401
+
+@jwt.revoked_token_loader # token is no longer valid (e.g. when user did log out)
+def revoked_token_callaback():
+	return jsonify ({
+		'description' : 'The token has been revoked.',
+		'error' : 'token_revoked'
+		}), 401
+
 # End-Points available
 api.add_resource(UserRegister, '/register') # a new user registration
 api.add_resource(UserLogin, '/login') # allows user to loging
 api.add_resource(UserLogout, '/logout') # allows user to logout
+api.add_resource(TokenRefresh, '/refresh')
 
 # allow these executions only when its called directly
 if __name__ == '__main__':
