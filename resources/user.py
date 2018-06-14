@@ -2,9 +2,12 @@ from flask_restful import Resource, reqparse
 from models.user import UserModel
 from werkzeug.security import safe_str_cmp
 from flask_jwt_extended import (
-	create_access_token, 
-	create_refresh_token
+		create_access_token, 
+		create_refresh_token,
+		jwt_required,
+		get_raw_jwt
 	)
+from blacklist import BLACKLIST
 
 # class global paraser filter
 _user_parser = reqparse.RequestParser()
@@ -58,3 +61,12 @@ class UserLogin(Resource):
 			}, 200
 
 		return {'message' : 'Invalid credentials'}, 401
+
+# user logout
+class UserLogout(Resource):
+	@jwt_required # only for loged in users
+	def post(self):
+		# use balaclist current token instead of user id
+		jti = get_raw_jwt()['jti'] # jti is "JWT ID", an unique identifier for JWT
+		BLACKLIST.add(jti)
+		return {'message' : 'Sucessfully logged out.'}, 200
