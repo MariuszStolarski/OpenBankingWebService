@@ -10,11 +10,12 @@ from resources.user import (
 		UserLogout,
 		TokenRefresh
 	)
+from resources.accountRequest import AccountRequest
 from blacklist import BLACKLIST
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL','sqlite:///data.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
@@ -63,6 +64,25 @@ api.add_resource(UserRegister, '/register') # a new user registration
 api.add_resource(UserLogin, '/login') # allows user to loging
 api.add_resource(UserLogout, '/logout') # allows user to logout
 api.add_resource(TokenRefresh, '/refresh')
+
+# Open Banking Account and Transaction ASPSP API issued for AISP / PISP
+# (Account Servicing Payment Service Provider)
+# * expected URI: /TheBank/open-banking/v1.0/payments
+
+# Accont-resuests
+# Allows the AISP to send a copy of the consent to the ASPSP
+# to authorise access to account and transaction information
+# ASPSP responds with a unique AccountRequestId to refer to the resource
+# Prior to calling the API, the AISP must have an access token
+# issued by the ASPSP using a client credentials grant
+# * POST /account-requests
+api.add_resource(AccountRequest, '/account-requests', '/account-requests/<string:accountRequestId>')
+# * GET /account-requests/{AccountRequestId}
+# * DELETE /account-requests/{AccountRequestId}
+
+
+# # GET /acconts
+
 
 # allow these executions only when its called directly
 if __name__ == '__main__':
